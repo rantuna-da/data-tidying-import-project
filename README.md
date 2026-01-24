@@ -127,7 +127,7 @@ A data table for each dataset can be seen below:
 `us-inflation`
 
 | variable | description |
-|---------------|---------------------------------------------------------|
+|-----------------|-------------------------------------------------------|
 | `country` | location data; all values "United States" |
 | `cpi_division_id` | numerical value to represent cpi division |
 | `2011` | annual inflation percentage for the year 2011 by cpi division |
