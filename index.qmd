@@ -5,23 +5,28 @@ subtitle: "Investigation into Chicago taxis"
 echo: false
 bibliography: references.bib
 ---
+## Introduction
 
 ## Packages 
 
 ```{r}
 #| warning: false
 #| message: false
-
-# Make sure to have each package installed before running the following code
 library(tidyverse)
 library(readxl)
 library(scales)
 ```
 
-## Question 1
+## Description
 
+### Data Dictionary
+
+## General Data Overview
+
+## Question 1
 
 ## Question 2 
 
+## Question 3
 
-## Your own question 
+## Bonus Chapter¿?
