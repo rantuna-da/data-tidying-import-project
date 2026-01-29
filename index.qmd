@@ -7,6 +7,9 @@ bibliography: references.bib
 ---
 ## Introduction
 
+
+<img src="images/inflation.png" align="center" width="300" height="180"/>
+
 ## Packages 
 
 ```{r}
