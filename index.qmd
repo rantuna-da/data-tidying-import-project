@@ -29,7 +29,7 @@ This analysis seeks to provide a historical perspective for public policy analys
 
 1.  Calculate the minimum and maximum annual inflation percentage for each cpi division.
 2.  Create a plot of annual inflation vs. year for divisions 1, 3, 7, and 10.
-3.  
+3.  TBD
 
 ![](images/inflation.png){fig-alt="Cash" fig-align="center" width="300" height="\"180"}
 
@@ -259,10 +259,9 @@ mutate(
   theme(legend.position = "bottom")
 ```
 
-*agregar análisis del gráfico*
-*cómo poner in identificador de imagen, algo como Fig.1*
-*está bien el orden de los CPI?*
 
 ## Task 3
+TBD
 
-## Bonus Chapter¿?
+## Bonus Chapter
+TBD
