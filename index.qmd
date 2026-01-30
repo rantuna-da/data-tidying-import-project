@@ -29,7 +29,9 @@ This analysis seeks to provide a historical perspective for public policy analys
 
 1.  Calculate the minimum and maximum annual inflation percentage for each CPI Division.
 2.  Create a plot of annual inflation vs. year for Divisions 1, 3, 7, and 10.
-3.  TBD
+3.  Which CPI divisions most frequently experienced deflationary periods between 2011 and 2021, and how does this impact long-term price stability?
+
+**Bonus Chapter:** *Clustering*
 
 ![](images/inflation.png){fig-alt="Cash" fig-align="center" width="300" height="\"180"}
 
@@ -295,8 +297,67 @@ The visual analysis of selected CPI divisions (1, 3, 7, and 10) illustrates how 
 
 ## Task 3
 
-TBD
+Which CPI divisions most frequently experienced deflationary periods between 2011 and 2021, and how does this impact long-term price stability?
+
+```{r}
+#|label: deflation-freq
+#| fig-cap: "Figure 3. Deflation Frequency"
+# 1- Bar chart
+inflation_joined |> 
+  filter(inflation < 0) |> 
+  group_by(description) |> 
+  summarize(n = n()) |> 
+  ggplot(aes(x = fct_reorder(description, -n), y = n)) +
+  geom_col(aes(alpha = n), fill = "steelblue", show.legend = FALSE) +
+  geom_text(aes(label = n), vjust = -0.5, fontface = "bold", color = "gray30") +
+  scale_alpha_continuous(range = c(0.4, 1)) +
+  scale_x_discrete(labels = scales::label_wrap(18)) +
+  scale_y_continuous(labels = NULL, limits = c(0, 8)) +
+  labs(
+    title = "CPI Divisions with Deflation Frequency",
+    subtitle = "Number of years with negative inflation (2011-2021)",
+    x = NULL,
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    axis.text.x = element_text(size = 9)
+  )
+
+# 2- summary table
+inflation_joined |> 
+  filter(inflation < 0) |> 
+  group_by(description) |> 
+  summarise(
+    years = paste(sort(year), collapse = ", "),
+    count = n()
+  ) |> 
+  arrange(desc(count)) |> 
+  select(-count) |>
+  knitr::kable(
+    col.names = c("CPI Division", "Years with Negative Inflation"),
+    caption = "Table 2. Detailed Years of Deflationary Periods"
+  )
+```
+
+**Analysis:**
+
+The analysis of deflation frequency provides critical insights into which sectors are most prone to price contractions, a key indicator for economic stimulus planning:
+
+-   **High Deflation Frequency:** The **Communication** sector is the most frequent outlier, experiencing deflation in **7 out of 11 years**. This persistent trend may be driven by rapid technological advancements and intense market competition, suggesting it is a sector where consumers consistently gain purchasing power.
+
+-   **Recurrent Volatility:** Both **Transport** and **Furnishings & Household Maintenance** recorded **6 years of deflation**. For public policy, this highlights these sectors as primary candidates for "economic safety nets," as they are highly susceptible to global supply chain disruptions and shifts in consumer demand.
+
+-   **Resilient Categories:** In contrast, sectors like **Food and non-alcoholic beverages** and **Recreation and culture** experienced only **2 years of deflation**, indicating they are more resistant to price drops and generally follow a more stable inflationary path.
+
+This "Deflationary Map" allows analysts to prioritize sectors that might require intervention during economic downturns, identifying **Communication** and **Transport** as the most structurally sensitive areas within the CPI.
 
 ## Bonus Chapter
 
 TBD
+
+## Executive Summary
+
+### Key Findings
