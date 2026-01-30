@@ -21,6 +21,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -111,28 +146,655 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p><img src="images/inflation.png" align="center" width="300" height="180"></p>
+<p>An exploratory data analysis (EDA) was conducted to analyze a dataset with historical inflation data (from 2011 to 2021) from 12 CPI divisions. A second dataset was used to obtain the description of the divisions, through a join using the key variable.</p>
+<p>The Organisation for Economic Co-operation and Development defines inflation as follows:</p>
+<blockquote class="blockquote">
+<p>Inflation is a rise in the general level of prices of goods and services that households acquire for the purpose of consumption in an economy over a period of time.</p>
+<p>The main measure of inflation is the annual inflation rate which is the movement of the Consumer Price Index (CPI) from one month/period to the same month/period of the previous year expressed as percentage over time.</p>
+<p>Source: <a href="https://www.oecd.org/sdd/prices-ppp/consumerpriceindices-frequentlyaskedquestionsfaqs.htm#1">OECD CPI FAQ</a></p>
+</blockquote>
+<p>CPI is broken down into 12 divisions such as food, housing, health, etc.</p>
+<section id="business-objectives" class="level3">
+<h3 class="anchored" data-anchor-id="business-objectives">Business Objectives</h3>
+<p>This analysis seeks to provide a historical perspective for public policy analysts, using the data to produce the following:</p>
+<ol type="1">
+<li>Calculate the minimum and maximum annual inflation percentage for each cpi division.</li>
+<li>Create a plot of annual inflation vs.&nbsp;year for divisions 1, 3, 7, and 10.</li>
+<li></li>
+</ol>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/inflation.png" class="quarto-figure quarto-figure-center figure-img" alt="Cash" width="300"></p>
+</figure>
+</div>
+</section>
 </section>
 <section id="packages" class="level2">
 <h2 class="anchored" data-anchor-id="packages">Packages</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(skimr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
 </section>
-<section id="description" class="level2">
-<h2 class="anchored" data-anchor-id="description">Description</h2>
+<section id="data" class="level2">
+<h2 class="anchored" data-anchor-id="data">Data</h2>
+<p>The data needed to explore US inflation are spread across two files:</p>
+<ul>
+<li><strong>us-inflation.csv</strong>: Annual inflation rate for the US for 12 CPI divisions. Each division is identified by an ID number.</li>
+<li><strong>cpi-divisions.xlsx</strong>: A “lookup table” of CPI division ID numbers and their descriptions.</li>
+</ul>
+<p>The following steps import and provide an initial overview of the datasets:</p>
+<p><em>us-inflation</em></p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: reading-csv-file</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#read csv file</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>us_inflation <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="at">file =</span> <span class="st">"data/us-inflation.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#glimpse csv file</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(us_inflation)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 12
+Columns: 13
+$ country         &lt;chr&gt; "United States", "United States", "United States", "Un…
+$ cpi_division_id &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+$ `2011`          &lt;dbl&gt; 4.8039240, 2.1728440, 1.6313930, 1.4973190, -0.4152586…
+$ `2012`          &lt;dbl&gt; 2.4539620, 1.6838880, 3.4504560, 1.7225210, 0.6908713,…
+$ `2013`          &lt;dbl&gt; 0.9083796, 2.0862630, 1.1026810, 2.4054070, -0.8977697…
+$ `2014`          &lt;dbl&gt; 2.63980100, 1.98985000, 0.39516940, 2.96942900, -1.445…
+$ `2015`          &lt;dbl&gt; 1.16771100, 1.71948600, -0.99873560, 2.33140200, -0.73…
+$ `2016`          &lt;dbl&gt; -1.32534900, 2.28382600, -0.02269053, 2.84727700, -1.1…
+$ `2017`          &lt;dbl&gt; -0.2021815, 3.5153640, -0.3733105, 3.4571830, -0.90076…
+$ `2018`          &lt;dbl&gt; 0.45556470, 2.61149900, 0.32713790, 3.16282900, 0.5484…
+$ `2019`          &lt;dbl&gt; 0.8851313, 3.2508660, -0.9156038, 3.0409520, 1.7480280…
+$ `2020`          &lt;dbl&gt; 3.505030, 3.413118, -4.453169, 2.588173, 1.747593, 2.3…
+$ `2021`          &lt;dbl&gt; 3.469165, 4.461650, 2.394024, 3.020479, 4.405128, 2.06…</code></pre>
+</div>
+</div>
+<p><em>cpi-divisions</em></p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: reading-excel-file</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">#read excel file</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>cpi_divisions <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="at">path =</span> <span class="st">"data/cpi-divisions.xlsx"</span>, <span class="at">.name_repair =</span> <span class="st">"unique_quiet"</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">#glimpse excel file</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(cpi_divisions)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 13
+Columns: 2
+$ `A “lookup table” of CPI division ID numbers and their descriptions.` &lt;chr&gt; …
+$ ...2                                                                  &lt;chr&gt; …</code></pre>
+</div>
+</div>
+<p>During the initial inspection, it was identified that the Excel file contained metadata in the first row, so it was skipped to ensure a clean load.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: fixing-excel-file</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#read excel file</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>cpi_divisions <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="at">path =</span> <span class="st">"data/cpi-divisions.xlsx"</span>, <span class="at">skip =</span> <span class="dv">1</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#glimpse excel file</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(cpi_divisions)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 12
+Columns: 2
+$ id          &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+$ description &lt;chr&gt; "Food and non-Alcoholic beverages", "Alcoholic beverages, …</code></pre>
+</div>
+</div>
 <section id="data-dictionary" class="level3">
 <h3 class="anchored" data-anchor-id="data-dictionary">Data Dictionary</h3>
+<p>A data table for each dataset can be seen below:</p>
+<p><em>us-inflation</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>country</code></td>
+<td style="text-align: left;">location data; all values “United States”.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>cpi_division_id</code></td>
+<td style="text-align: left;">numerical value to represent cpi division.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>2011</code></td>
+<td style="text-align: left;">annual inflation percentage for the year 2011 by cpi division.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>2012</code></td>
+<td style="text-align: left;">annual inflation percentage for the year 2012 by cpi division.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>...</code></td>
+<td style="text-align: left;">…</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>2021</code></td>
+<td style="text-align: left;">annual inflation percentage for the year 2021 by cpi division.</td>
+</tr>
+</tbody>
+</table>
+<p><br>
+<em>cpi-divisions</em></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>id</code></td>
+<td style="text-align: left;">numerical value to represent cpi division.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>description</code></td>
+<td style="text-align: left;">description of the cpi value.</td>
+</tr>
+</tbody>
+</table>
 </section>
 </section>
 <section id="general-data-overview" class="level2">
 <h2 class="anchored" data-anchor-id="general-data-overview">General Data Overview</h2>
+<p>As noted during the initial inspection, the <em>us_inflation</em> dataset is in a wide format. To facilitate the analysis, it will be transformed into a long format using <strong>tidyr::pivot_longer()</strong>.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: pivot-us-inflation</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#pivoting data</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>us_inflation_long <span class="ot">&lt;-</span> us_inflation <span class="sc">|&gt;</span> </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">cols =</span> <span class="sc">!</span><span class="fu">c</span>(country, cpi_division_id),</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="st">"year"</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_to =</span> <span class="st">"inflation"</span>,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_transform =</span> <span class="fu">list</span>(<span class="at">year =</span> as.double)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Now we can pass the division description to this longer table, using the data in <em>cpi-divisions</em>.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: create-final-table</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#joining data</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>inflation_joined <span class="ot">&lt;-</span> us_inflation_long <span class="sc">|&gt;</span> </span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(cpi_divisions, <span class="fu">join_by</span>(cpi_division_id <span class="sc">==</span> id))</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>inflation_joined</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 132 × 5
+   country       cpi_division_id  year inflation description                    
+   &lt;chr&gt;                   &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;                          
+ 1 United States               1  2011     4.80  Food and non-Alcoholic beverag…
+ 2 United States               1  2012     2.45  Food and non-Alcoholic beverag…
+ 3 United States               1  2013     0.908 Food and non-Alcoholic beverag…
+ 4 United States               1  2014     2.64  Food and non-Alcoholic beverag…
+ 5 United States               1  2015     1.17  Food and non-Alcoholic beverag…
+ 6 United States               1  2016    -1.33  Food and non-Alcoholic beverag…
+ 7 United States               1  2017    -0.202 Food and non-Alcoholic beverag…
+ 8 United States               1  2018     0.456 Food and non-Alcoholic beverag…
+ 9 United States               1  2019     0.885 Food and non-Alcoholic beverag…
+10 United States               1  2020     3.51  Food and non-Alcoholic beverag…
+# ℹ 122 more rows</code></pre>
+</div>
+</div>
+<p>Before diving into specific questions, let’s transform the data types of some variables and then examine the structure and integrity of the final dataset.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: data-summary</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#transform data types</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>inflation_joined <span class="ot">&lt;-</span> inflation_joined <span class="sc">|&gt;</span> </span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">description =</span> <span class="fu">fct_reorder</span>(description, cpi_division_id),</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">cpi_division_id =</span> <span class="fu">as.factor</span>(cpi_division_id),</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co">#complete summary of statistics and null values</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="fu">skim</span>(inflation_joined)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Name</td>
+<td style="text-align: left;">inflation_joined</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Number of rows</td>
+<td style="text-align: left;">132</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Number of columns</td>
+<td style="text-align: left;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">_______________________</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Column type frequency:</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">factor</td>
+<td style="text-align: left;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">numeric</td>
+<td style="text-align: left;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">________________________</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Group variables</td>
+<td style="text-align: left;">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 13%">
+<col style="width: 19%">
+<col style="width: 5%">
+<col style="width: 5%">
+<col style="width: 8%">
+<col style="width: 12%">
+<col style="width: 15%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: right;">min</th>
+<th style="text-align: right;">max</th>
+<th style="text-align: right;">empty</th>
+<th style="text-align: right;">n_unique</th>
+<th style="text-align: right;">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">country</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: factor</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 17%">
+<col style="width: 10%">
+<col style="width: 15%">
+<col style="width: 8%">
+<col style="width: 9%">
+<col style="width: 38%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: left;">ordered</th>
+<th style="text-align: right;">n_unique</th>
+<th style="text-align: left;">top_counts</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">cpi_division_id</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: left;">1: 11, 2: 11, 3: 11, 4: 11</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">description</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: left;">Foo: 11, Alc: 11, Clo: 11, Hou: 11</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 10%">
+<col style="width: 14%">
+<col style="width: 8%">
+<col style="width: 5%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 7%">
+<col style="width: 6%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: right;">mean</th>
+<th style="text-align: right;">sd</th>
+<th style="text-align: right;">p0</th>
+<th style="text-align: right;">p25</th>
+<th style="text-align: right;">p50</th>
+<th style="text-align: right;">p75</th>
+<th style="text-align: right;">p100</th>
+<th style="text-align: left;">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">year</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2016.00</td>
+<td style="text-align: right;">3.17</td>
+<td style="text-align: right;">2011.00</td>
+<td style="text-align: right;">2013.00</td>
+<td style="text-align: right;">2016.00</td>
+<td style="text-align: right;">2019.00</td>
+<td style="text-align: right;">2021.0</td>
+<td style="text-align: left;">▇▅▅▅▅</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">inflation</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.65</td>
+<td style="text-align: right;">2.62</td>
+<td style="text-align: right;">-10.02</td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">2.09</td>
+<td style="text-align: right;">2.86</td>
+<td style="text-align: right;">15.8</td>
+<td style="text-align: left;">▁▂▇▁▁</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><br>
+The final merged dataset consists of <strong>132 observations</strong> across <strong>5 variables</strong>, covering 12 CPI divisions over an 11-year period (2011-2021). A preliminary inspection via the skim() function confirms the following:</p>
+<ul>
+<li><p><strong>Data Integrity:</strong> There are no missing values (n_missing = 0) across all columns, ensuring a successful join between inflation rates and division descriptions.</p></li>
+<li><p><strong>Distribution:</strong> The average annual inflation rate stands at 1.65%, with a standard deviation of 2.62. This spread suggests significant volatility among different sectors.</p></li>
+<li><p><strong>Extreme Values:</strong> The presence of long “tails” validates the existence of outliers, ranging from a minimum deflation of -10.02% to a maximum peak of 15.8%.</p></li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: histogram</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">#|fig-cap: "Figure 1. Annual Inflation Percentage Dispersion"</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>global_rate <span class="ot">&lt;-</span> <span class="fu">mean</span>(inflation_joined<span class="sc">$</span>inflation)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>inflation_joined <span class="sc">|&gt;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">inflation =</span> inflation<span class="sc">/</span><span class="dv">100</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> inflation)) <span class="sc">+</span> </span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">binwidth =</span> <span class="fl">0.01</span>, <span class="at">fill =</span> <span class="st">"gray60"</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span> </span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">0.0165</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray40"</span>) <span class="sc">+</span> </span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"text"</span>, </span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="dv">0</span>, </span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="dv">33</span>,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"Avg:"</span>, <span class="fu">percent</span>(global_rate<span class="sc">/</span><span class="dv">100</span>, <span class="fl">0.01</span>)),</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"gray30"</span>, </span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="fl">3.1</span>,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">fontface =</span> <span class="st">"bold"</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> scales<span class="sc">::</span>percent,</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="fl">0.15</span>, <span class="fl">0.2</span>, <span class="fl">0.05</span>)</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Distribution of Annual Inflation Rates"</span>,</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Inflation Percentage"</span>,</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Frequency"</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>()) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
-<section id="question-1" class="level2">
-<h2 class="anchored" data-anchor-id="question-1">Question 1</h2>
+<section id="task-1" class="level2">
+<h2 class="anchored" data-anchor-id="task-1">Task 1</h2>
+<p>Calculate the minimum and maximum annual inflation percentage for each cpi division.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: tabble-summary</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">#Complete summary of statistics and null values</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>inflation_joined <span class="sc">|&gt;</span> </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(description) <span class="sc">|&gt;</span> </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_inflation =</span> <span class="fu">min</span>(inflation),</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">year_min =</span> year[<span class="fu">which.min</span>(inflation)],</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_inflation =</span> <span class="fu">max</span>(inflation),</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">year_max =</span> year[<span class="fu">which.max</span>(inflation)]</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_inflation =</span> <span class="fu">paste0</span>(<span class="fu">round</span>(min_inflation,<span class="dv">2</span>),<span class="st">"%"</span>),</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_inflation =</span> <span class="fu">paste0</span>(<span class="fu">round</span>(max_inflation,<span class="dv">2</span>),<span class="st">"%"</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"CPI Division"</span>, <span class="st">"Min Inflation"</span>, <span class="st">"Year (Min)"</span>, </span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"Max Inflation"</span>, <span class="st">"Year (max)"</span>),</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">align =</span> <span class="st">"lcccc"</span>,</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Table 1. Min and Max Annual Inflations by CPI Division"</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Table 1. Min and Max Annual Inflations by CPI Division</caption>
+<colgroup>
+<col style="width: 55%">
+<col style="width: 12%">
+<col style="width: 9%">
+<col style="width: 12%">
+<col style="width: 9%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">CPI Division</th>
+<th style="text-align: center;">Min Inflation</th>
+<th style="text-align: center;">Year (Min)</th>
+<th style="text-align: center;">Max Inflation</th>
+<th style="text-align: center;">Year (max)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Food and non-Alcoholic beverages</td>
+<td style="text-align: center;">-1.33%</td>
+<td style="text-align: center;">2016</td>
+<td style="text-align: center;">4.8%</td>
+<td style="text-align: center;">2011</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Alcoholic beverages, tobacco and narcotics</td>
+<td style="text-align: center;">1.68%</td>
+<td style="text-align: center;">2012</td>
+<td style="text-align: center;">4.46%</td>
+<td style="text-align: center;">2021</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Clothing and footwear</td>
+<td style="text-align: center;">-4.45%</td>
+<td style="text-align: center;">2020</td>
+<td style="text-align: center;">3.45%</td>
+<td style="text-align: center;">2012</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Housing, water, electricity, gas and other fuels</td>
+<td style="text-align: center;">1.5%</td>
+<td style="text-align: center;">2011</td>
+<td style="text-align: center;">3.46%</td>
+<td style="text-align: center;">2017</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Furnishings, household equipment and routine household maintenance</td>
+<td style="text-align: center;">-1.45%</td>
+<td style="text-align: center;">2014</td>
+<td style="text-align: center;">4.41%</td>
+<td style="text-align: center;">2021</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Health</td>
+<td style="text-align: center;">1.16%</td>
+<td style="text-align: center;">2019</td>
+<td style="text-align: center;">3.45%</td>
+<td style="text-align: center;">2016</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Transport</td>
+<td style="text-align: center;">-10.02%</td>
+<td style="text-align: center;">2015</td>
+<td style="text-align: center;">15.8%</td>
+<td style="text-align: center;">2021</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Communication</td>
+<td style="text-align: center;">-5.48%</td>
+<td style="text-align: center;">2017</td>
+<td style="text-align: center;">2.36%</td>
+<td style="text-align: center;">2020</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Recreation and culture</td>
+<td style="text-align: center;">-0.32%</td>
+<td style="text-align: center;">2011</td>
+<td style="text-align: center;">2.6%</td>
+<td style="text-align: center;">2021</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Education</td>
+<td style="text-align: center;">1.41%</td>
+<td style="text-align: center;">2021</td>
+<td style="text-align: center;">4.18%</td>
+<td style="text-align: center;">2011</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Restaurants and hotels</td>
+<td style="text-align: center;">0.42%</td>
+<td style="text-align: center;">2012</td>
+<td style="text-align: center;">5.04%</td>
+<td style="text-align: center;">2021</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Miscellaneous goods and services</td>
+<td style="text-align: center;">1.21%</td>
+<td style="text-align: center;">2021</td>
+<td style="text-align: center;">3.89%</td>
+<td style="text-align: center;">2016</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Analysis:</strong></p>
+<p>The summary of annual inflation percentages by CPI division reveals a diverse economic landscape across the 11-year period:</p>
+<ul>
+<li><p><strong>High Volatility:</strong> The <em>Transport</em> sector stands out as the most volatile, recording both the lowest minimum (-10.02% in 2015) and the highest maximum (15.8% in 2021). While the dataset does not specify external causes, this behavior is typical of sectors highly dependent on global commodity prices.</p></li>
+<li><p><strong>Deflationary Trends:</strong> Several divisions experienced periods of deflation (negative inflation), most notably <em>Communication</em> at -5.48% and <em>Clothing and footwear</em> at -4.45%.</p></li>
+<li><p><strong>Relative Stability:</strong> In contrast, sectors like <em>Education</em> and <em>Health</em> maintained positive inflation rates throughout the entire decade, with minimums above 1.1% and relatively narrow ranges compared to other categories.</p></li>
+<li><p><strong>Synchronized 2021 Peaks:</strong> A key finding is the inflationary surge toward the end of the study period. Nearly half of the categories (5 out of 12) reached their maximum historical inflation in 2021.</p></li>
+</ul>
 </section>
-<section id="question-2" class="level2">
-<h2 class="anchored" data-anchor-id="question-2">Question 2</h2>
+<section id="task-2" class="level2">
+<h2 class="anchored" data-anchor-id="task-2">Task 2</h2>
+<p>Create a plot of annual inflation vs.&nbsp;year for divisions 1, 3, 7, and 10.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|label: tabble-summary</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Figure 2. Annual Inflation Rates Evolution"</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">#filtering divisions</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>inflation_joined <span class="sc">|&gt;</span> <span class="fu">filter</span>(</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  cpi_division_id <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">7</span>,<span class="dv">10</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">inflation =</span> inflation<span class="sc">/</span><span class="dv">100</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>)<span class="sc">|&gt;</span> </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> year, <span class="at">y =</span> inflation, <span class="at">color =</span> description, <span class="at">group =</span> description)) <span class="sc">+</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="fl">2.5</span>) <span class="sc">+</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> scales<span class="sc">::</span>percent,</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="fl">0.1</span>, <span class="fl">0.1</span>, <span class="fl">0.1</span>)</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Annual Inflation Rates of Select CPI Divisions"</span>,</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"From 2011 to 2021"</span>,</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Year"</span>,</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Annual Inflation Rate"</span>,</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"CPI Division"</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>()) <span class="sc">+</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><em>agregar análisis del gráfico</em> <em>cómo poner in identificador de imagen, algo como Fig.1</em> <em>está bien el orden de los CPI?</em></p>
 </section>
-<section id="question-3" class="level2">
-<h2 class="anchored" data-anchor-id="question-3">Question 3</h2>
+<section id="task-3" class="level2">
+<h2 class="anchored" data-anchor-id="task-3">Task 3</h2>
 </section>
 <section id="bonus-chapter" class="level2">
 <h2 class="anchored" data-anchor-id="bonus-chapter">Bonus Chapter¿?</h2>

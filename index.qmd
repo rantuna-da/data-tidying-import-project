@@ -2,34 +2,267 @@
 title: "Project"
 author: "Roberto_Antuna"
 subtitle: "Investigation into Inflation in the US"
-echo: false
+format:
+  html:
+    code-fold: true
+    echo: true
 bibliography: references.bib
 ---
+
 ## Introduction
 
+An exploratory data analysis (EDA) was conducted to analyze a dataset with historical inflation data (from 2011 to 2021) from 12 CPI divisions. A second dataset was used to obtain the description of the divisions, through a join using the key variable.
 
-<img src="images/inflation.png" align="center" width="300" height="180"/>
+The Organisation for Economic Co-operation and Development defines inflation as follows:
 
-## Packages 
+> Inflation is a rise in the general level of prices of goods and services that households acquire for the purpose of consumption in an economy over a period of time.
+>
+> The main measure of inflation is the annual inflation rate which is the movement of the Consumer Price Index (CPI) from one month/period to the same month/period of the previous year expressed as percentage over time.
+>
+> Source: [OECD CPI FAQ](https://www.oecd.org/sdd/prices-ppp/consumerpriceindices-frequentlyaskedquestionsfaqs.htm#1)
+
+CPI is broken down into 12 divisions such as food, housing, health, etc.
+
+### Business Objectives
+
+This analysis seeks to provide a historical perspective for public policy analysts, using the data to produce the following:
+
+1.  Calculate the minimum and maximum annual inflation percentage for each cpi division.
+2.  Create a plot of annual inflation vs. year for divisions 1, 3, 7, and 10.
+3.  
+
+![](images/inflation.png){fig-alt="Cash" fig-align="center" width="300" height="\"180"}
+
+## Packages
 
 ```{r}
+#| label: packages
 #| warning: false
 #| message: false
 library(tidyverse)
 library(readxl)
 library(scales)
+library(skimr)
 ```
 
-## Description
+## Data
+
+The data needed to explore US inflation are spread across two files:
+
+-   **us-inflation.csv**: Annual inflation rate for the US for 12 CPI divisions. Each division is identified by an ID number.
+-   **cpi-divisions.xlsx**: A "lookup table" of CPI division ID numbers and their descriptions.
+
+The following steps import and provide an initial overview of the datasets:
+
+*us-inflation*
+```{r}
+#|label: reading-csv-file
+#read csv file
+us_inflation <- read_csv(file = "data/us-inflation.csv", show_col_types = FALSE)
+#glimpse csv file
+glimpse(us_inflation)
+```
+
+*cpi-divisions*
+```{r}
+#|label: reading-excel-file
+#| warning: false
+#| message: false
+#read excel file
+cpi_divisions <- read_excel(path = "data/cpi-divisions.xlsx", .name_repair = "unique_quiet")
+#glimpse excel file
+glimpse(cpi_divisions)
+```
+
+During the initial inspection, it was identified that the Excel file contained metadata in the first row, so it was skipped to ensure a clean load.
+
+```{r}
+#|label: fixing-excel-file
+#read excel file
+cpi_divisions <- read_excel(path = "data/cpi-divisions.xlsx", skip = 1)
+#glimpse excel file
+glimpse(cpi_divisions)
+```
 
 ### Data Dictionary
 
+A data table for each dataset can be seen below:
+
+*us-inflation*
+
+| Variable | Description |
+|:-----------------------------------|:-----------------------------------|
+| `country` | location data; all values "United States". |
+| `cpi_division_id` | numerical value to represent cpi division. |
+| `2011` | annual inflation percentage for the year 2011 by cpi division. |
+| `2012` | annual inflation percentage for the year 2012 by cpi division. |
+| `...` | ... |
+| `2021` | annual inflation percentage for the year 2021 by cpi division. |
+
+\
+*cpi-divisions*
+
+| Variable      | Description                                |
+|:--------------|:-------------------------------------------|
+| `id`          | numerical value to represent cpi division. |
+| `description` | description of the cpi value.              |
+
 ## General Data Overview
 
-## Question 1
+As noted during the initial inspection, the *us_inflation* dataset is in a wide format. To facilitate the analysis, it will be transformed into a long format using **tidyr::pivot_longer()**.
 
-## Question 2 
+```{r}
+#|label: pivot-us-inflation
+#pivoting data
+us_inflation_long <- us_inflation |> 
+  pivot_longer(
+    cols = !c(country, cpi_division_id),
+    names_to = "year",
+    values_to = "inflation",
+    names_transform = list(year = as.double)
+  )
+```
 
-## Question 3
+Now we can pass the division description to this longer table, using the data in *cpi-divisions*.
+
+```{r}
+#|label: create-final-table
+#joining data
+inflation_joined <- us_inflation_long |> 
+  left_join(cpi_divisions, join_by(cpi_division_id == id))
+inflation_joined
+```
+
+Before diving into specific questions, let’s transform the data types of some variables and then examine the structure and integrity of the final dataset.
+
+```{r}
+#|label: data-summary
+#transform data types
+inflation_joined <- inflation_joined |> 
+  mutate(
+    description = fct_reorder(description, cpi_division_id),
+    cpi_division_id = as.factor(cpi_division_id),
+  )
+#complete summary of statistics and null values
+skim(inflation_joined)
+```
+\
+The final merged dataset consists of **132 observations** across **5 variables**, covering 12 CPI divisions over an 11-year period (2011-2021). A preliminary inspection via the skim() function confirms the following:
+
+* **Data Integrity:** There are no missing values (n_missing = 0) across all columns, ensuring a successful join between inflation rates and division descriptions.
+
+* **Distribution:** The average annual inflation rate stands at 1.65%, with a standard deviation of 2.62. This spread suggests significant volatility among different sectors.
+
+* **Extreme Values:** The presence of long "tails" validates the existence of outliers, ranging from a minimum deflation of -10.02% to a maximum peak of 15.8%.
+
+
+```{r}
+#|label: histogram
+#|fig-cap: "Figure 1. Annual Inflation Percentage Dispersion"
+global_rate <- mean(inflation_joined$inflation)
+inflation_joined |>
+  mutate(inflation = inflation/100) |> 
+  ggplot(aes(x = inflation)) + 
+  geom_histogram(binwidth = 0.01, fill = "gray60", alpha = 0.8) + 
+  geom_vline(xintercept = 0.0165, linetype = "dashed", color = "gray40") + 
+  annotate(
+    "text", 
+    x = 0, 
+    y = 33,
+    label = paste("Avg:", percent(global_rate/100, 0.01)),
+    color = "gray30", 
+    size = 3.1,
+    fontface = "bold"
+  ) +
+  scale_x_continuous(
+    labels = scales::percent,
+    breaks = seq(-0.15, 0.2, 0.05)
+  ) +
+  labs(
+    title = "Distribution of Annual Inflation Rates",
+    x = "Inflation Percentage",
+    y = "Frequency"
+  )+
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank()) 
+```
+
+## Task 1
+
+Calculate the minimum and maximum annual inflation percentage for each cpi division.
+
+```{r}
+#|label: tabble-summary
+#Complete summary of statistics and null values
+inflation_joined |> 
+  group_by(description) |> 
+  summarise(
+    min_inflation = min(inflation),
+    year_min = year[which.min(inflation)],
+    max_inflation = max(inflation),
+    year_max = year[which.max(inflation)]
+  ) |> 
+  mutate(
+    min_inflation = paste0(round(min_inflation,2),"%"),
+    max_inflation = paste0(round(max_inflation,2),"%")
+  ) |> 
+  knitr::kable(
+    col.names = c("CPI Division", "Min Inflation", "Year (Min)", 
+                  "Max Inflation", "Year (max)"),
+    align = "lcccc",
+    caption = "Table 1. Min and Max Annual Inflations by CPI Division"
+  )
+```
+
+**Analysis:**
+
+The summary of annual inflation percentages by CPI division reveals a diverse economic landscape across the 11-year period:
+
+* **High Volatility:** The *Transport* sector stands out as the most volatile, recording both the lowest minimum (-10.02% in 2015) and the highest maximum (15.8% in 2021). While the dataset does not specify external causes, this behavior is typical of sectors highly dependent on global commodity prices.
+
+* **Deflationary Trends:** Several divisions experienced periods of deflation (negative inflation), most notably *Communication* at -5.48% and *Clothing and footwear* at -4.45%.
+
+* **Relative Stability:** In contrast, sectors like *Education* and *Health* maintained positive inflation rates throughout the entire decade, with minimums above 1.1% and relatively narrow ranges compared to other categories.
+
+* **Synchronized 2021 Peaks:** A key finding is the inflationary surge toward the end of the study period. Nearly half of the categories (5 out of 12) reached their maximum historical inflation in 2021.
+
+## Task 2
+
+Create a plot of annual inflation vs. year for divisions 1, 3, 7, and 10.
+
+```{r}
+#|label: tabble-summary
+#| fig-cap: "Figure 2. Annual Inflation Rates Evolution"
+#filtering divisions
+inflation_joined |> filter(
+  cpi_division_id %in% c(1,3,7,10)
+) |> 
+mutate(
+  inflation = inflation/100
+)|> 
+  ggplot(aes(x = year, y = inflation, color = description, group = description)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2.5) +
+  scale_y_continuous(
+    labels = scales::percent,
+    breaks = seq(-0.1, 0.1, 0.1)
+  ) +
+  labs(
+    title = "Annual Inflation Rates of Select CPI Divisions",
+    subtitle = "From 2011 to 2021",
+    x = "Year",
+    y = "Annual Inflation Rate",
+    color = "CPI Division"
+  ) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank()) +
+  theme(legend.position = "bottom")
+```
+
+*agregar análisis del gráfico*
+*cómo poner in identificador de imagen, algo como Fig.1*
+*está bien el orden de los CPI?*
+
+## Task 3
 
 ## Bonus Chapter¿?
