@@ -1,7 +1,7 @@
 ---
 title: "Project"
 author: "Roberto_Antuna"
-subtitle: "Investigation into Inflation in the US"
+subtitle: "US Inflation Analysis"
 format:
   html:
     code-fold: true
@@ -27,8 +27,8 @@ CPI is broken down into 12 divisions such as food, housing, health, etc.
 
 This analysis seeks to provide a historical perspective for public policy analysts, using the data to produce the following:
 
-1.  Calculate the minimum and maximum annual inflation percentage for each cpi division.
-2.  Create a plot of annual inflation vs. year for divisions 1, 3, 7, and 10.
+1.  Calculate the minimum and maximum annual inflation percentage for each CPI Division.
+2.  Create a plot of annual inflation vs. year for Divisions 1, 3, 7, and 10.
 3.  TBD
 
 ![](images/inflation.png){fig-alt="Cash" fig-align="center" width="300" height="\"180"}
@@ -189,7 +189,7 @@ inflation_joined |>
 
 ## Task 1
 
-Calculate the minimum and maximum annual inflation percentage for each cpi division.
+Calculate the minimum and maximum annual inflation percentage for each CPI Division.
 
 ```{r}
 #|label: tabble-summary
