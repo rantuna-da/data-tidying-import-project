@@ -1,12 +1,15 @@
 ---
-title: "Project"
+title: "US Inflation Analysis"
+subtitle: "Capstone Project: Duke University Data Science with R"
 author: "Roberto_Antuna"
-subtitle: "US Inflation Analysis"
+date: "2026-01-26"
 format:
   html:
+    toc: true
+    toc-location: left
     code-fold: true
     echo: true
-bibliography: references.bib
+    theme: cosmo
 ---
 
 ## Introduction
