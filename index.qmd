@@ -164,13 +164,13 @@ The final merged dataset consists of **132 observations** across **5 variables**
 
 ```{r}
 #| label: histogram
-#| fig-cap: "Figure 1. Annual Inflation Percentage Dispersion"
+#| fig-cap: "Figure 1. Histogram of Inflation Rate Dispersion (2011-2021)."
 global_rate <- mean(inflation_joined$inflation)
 inflation_joined |>
   mutate(inflation = inflation/100) |> 
   ggplot(aes(x = inflation)) + 
   geom_histogram(binwidth = 0.01, fill = "gray60", alpha = 0.8) + 
-  geom_vline(xintercept = 0.0165, linetype = "dashed", color = "gray40") + 
+  geom_vline(xintercept = global_rate/100, linetype = "dashed", color = "gray40") + 
   annotate(
     "text", 
     x = 0, 
@@ -186,6 +186,7 @@ inflation_joined |>
   ) +
   labs(
     title = "Distribution of Annual Inflation Rates",
+    subtitle = "Most sectors near the 1.65% average, while extreme values indicate high-volatility events",
     x = "Inflation Percentage",
     y = "Frequency"
   )+
@@ -238,7 +239,7 @@ Create a plot of annual inflation vs. year for divisions 1, 3, 7, and 10.
 
 ```{r}
 #| label: rates-evolution
-#| fig-cap: "Figure 2. Annual Inflation Rates Evolution"
+#| fig-cap: "Figure 2. Comparative Evolution of Annual Inflation Ratesb (2011-2021). The dashed reference line at 0%."
 #filtering divisions
 inflation_joined |> 
   filter(cpi_division_id %in% c(1,3,7,10)) |> 
@@ -259,8 +260,8 @@ inflation_joined |>
   ) +
   scale_x_continuous(breaks = seq(2011, 2021, 2)) +
   labs(
-    title = "Annual Inflation Rates of Select CPI Divisions",
-    subtitle = "From 2011 to 2021",
+    title = "Macroeconomic Trends across selected Sectors",
+    subtitle = "Education maintains a steady decline, Transport exhibits severe fluctuations",
     x = "Year",
     y = "Annual Inflation Rate",
     color = "CPI Division",
@@ -302,8 +303,8 @@ The visual analysis of selected CPI divisions (1, 3, 7, and 10) illustrates how 
 Which CPI divisions most frequently experienced deflationary periods between 2011 and 2021, and how does this impact long-term price stability?
 
 ```{r}
-#| label: deflation-freq
-#| fig-cap: "Figure 3. Deflation Frequency"
+#| label: deflation-freq-1
+#| fig-cap: "Figure 3. Frequency of Deflationary Events by CPI Division (2011-2021). The counts represent the total years each sector recorded negative annual inflation."
 # 1- Bar chart
 inflation_joined |> 
   filter(inflation < 0) |> 
@@ -316,8 +317,8 @@ inflation_joined |>
   scale_x_discrete(labels = scales::label_wrap(18)) +
   scale_y_continuous(labels = NULL, limits = c(0, 8)) +
   labs(
-    title = "CPI Divisions with Deflation Frequency",
-    subtitle = "Number of years with negative inflation (2011-2021)",
+    title = "Deflationary Recurrence by Sector",
+    subtitle = "Communication and Transport lead as the divisions most prone to annual price drops",
     x = NULL,
     y = NULL
   ) +
@@ -327,7 +328,10 @@ inflation_joined |>
     panel.grid.major.x = element_blank(),
     axis.text.x = element_text(size = 9)
   )
+```
 
+```{r}
+#| label: deflation-freq-2
 # 2- summary table
 inflation_joined |> 
   filter(inflation < 0) |> 
@@ -419,7 +423,7 @@ We use the **Total Within-Cluster Sum of Squares (WSS)** to identify the "elbow"
 
 ```{r}
 #| label: elbow-method
-#| fig-cap: "Figure 4. Elbow Method for Optimal K"
+#| fig-cap: "Figure 4. Elbow Method analysis to determine optimal cluster size. The Total Within-Cluster Sum of Squares (WSS) measures group compactness, identifying the inflection point where additional clusters provide diminishing returns in variance reduction."
 set.seed(123)
 # Testing k from 1 to 6 to find the point of diminishing returns
 wss <- map_dbl(1:6, function(k) {
@@ -432,7 +436,7 @@ tibble(k = 1:6, wss = wss) |>
   geom_point(size = 3) +
   labs(
     title = "Elbow Method for Optimal K",
-    x = "Number of Clusters (k)",
+    x = "Selecting k = 3 as the ideal balance between model complexity and group distinctness",
     y = "Total Within-Cluster Sum of Squares (WSS)"
   ) +
   theme_minimal()+
@@ -474,7 +478,7 @@ This final visualization summarizes the behavioral segmentation of the economy. 
 
 ```{r}
 #| label: cluster-visualization
-#| fig-cap: "Figure 5. Economic Risk Profiles Matrix"
+#| fig-cap: "Figure 5. Macroeconomic Risk Matrix. This multi-dimensional analysis segments CPI divisions based on average inflation, volatility, and deflation frequency (bubble size), providing a comprehensive risk landscape for the 2011-2021 period."
 #| fig-width: 9
 #| fig-height: 7
 ggplot(cpi_results, aes(x = avg_inf, y = volatility, color = cluster)) +
@@ -494,8 +498,8 @@ ggplot(cpi_results, aes(x = avg_inf, y = volatility, color = cluster)) +
   ) +
   scale_y_continuous(limits = c(0, 8)) +
   labs(
-    title = "Macroeconomic Risk Clustering",
-    subtitle = "Grouping CPI Divisions by Stability and Price Trends",
+    title = "Policy-Driven Risk Segmentation",
+    subtitle = "Strategic grouping identifies Transport as a systemic outlier and isolates structural deflation in competitive sectors",
     x = "Average Annual Inflation (%)",
     y = "Volatility (Standard Deviation)",
     size = "Deflation Years"
